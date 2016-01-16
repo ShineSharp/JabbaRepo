@@ -721,6 +721,7 @@ namespace IKalista
                 this.ProcessLink("saveAllyR", comboMenu.AddLinkedBool("Save Ally with R"));
                 this.ProcessLink("allyPercent", comboMenu.AddLinkedSlider("Save Ally Percentage", 20));
                 this.ProcessLink("saveManaR", comboMenu.AddLinkedBool("Save Mana For Ultimate"));
+                
             }
 
             var harassMenu = this.menu.MainMenu.AddSubMenu("Harass Options");
@@ -762,6 +763,7 @@ namespace IKalista
                     "sentDragon", 
                     misc.AddLinkedKeyBind("Sentinel Dragon", "Y".ToCharArray()[0], KeyBindType.Press));
                 this.ProcessLink("autoTrinket", misc.AddLinkedBool("Auto Blue Trinket"));
+                this.ProcessLink("exploit", misc.AddLinkedBool("Exploit ? ", false));
             }
 
             var drawing = this.menu.MainMenu.AddSubMenu("Drawing Options");
@@ -872,7 +874,17 @@ namespace IKalista
             {
                 return;
             }
-            
+            if (BoolLinks["exploit"].Value && ObjectManager.Player.AttackDelay / 1 > 1.70)
+            {
+                if (Game.Time * 1000 >= Orbwalking.LastAATick + 1)
+                {
+                    ObjectManager.Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                }
+                if (Game.Time * 1000 > Orbwalking.LastAATick + ObjectManager.Player.AttackDelay * 1000 - 150)
+                {
+                    ObjectManager.Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                }
+            }
             if (this.spells[SpellSlot.Q].IsReady() && BoolLinks["useQ"].Value && !ObjectManager.Player.IsDashing()
                 && !ObjectManager.Player.IsWindingUp)
             {
