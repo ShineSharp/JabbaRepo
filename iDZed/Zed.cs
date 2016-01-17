@@ -25,8 +25,8 @@ namespace iDZed
     using System.Collections.Generic;
     using System.Linq;
 
-    using iDZed.Activator;
-    using iDZed.Utils;
+    using Activator;
+    using Utils;
 
     using LeagueSharp;
     using LeagueSharp.Common;
@@ -498,16 +498,6 @@ namespace iDZed
         }
 
         /// <summary>
-        /// TODO The do shadow coax.
-        /// </summary>
-        /// <param name="target">
-        /// TODO The target.
-        /// </param>
-        private static void DoShadowCoax(Obj_AI_Hero target)
-        {
-        }
-
-        /// <summary>
         /// TODO The do triangle combo.
         /// </summary>
         /// <param name="target">
@@ -755,7 +745,8 @@ namespace iDZed
                     if (_spells[SpellSlot.W].IsReady() && ShadowManager.WShadow.IsUsable
                         && WShadowSpell.ToggleState == 0
                         && Environment.TickCount - _spells[SpellSlot.W].LastCastAttemptT > 0
-                        && Player.Distance(target) <= _spells[SpellSlot.W].Range + _spells[SpellSlot.Q].Range)
+                        && Player.Distance(target) <= _spells[SpellSlot.W].Range + 300
+                        && _spells[SpellSlot.Q].IsReady())
                     {
                         _spells[SpellSlot.W].Cast(target.ServerPosition);
                         _spells[SpellSlot.W].LastCastAttemptT = Environment.TickCount + 500;
@@ -815,6 +806,7 @@ namespace iDZed
         {
             Menu = new Menu("iDZed - Reworked", "com.idz.zed", true);
 
+            // ReSharper disable once ObjectCreationAsStatement
             new AssassinManager();
 
             var orbwalkMenu = new Menu(":: Orbwalker", "com.idz.zed.orbwalker");
