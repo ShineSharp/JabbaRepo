@@ -760,7 +760,7 @@ namespace iDZed
                             }
                             else
                             {
-                                _spells[SpellSlot.Q].Cast();
+                                _spells[SpellSlot.Q].Cast(target.Position);
                             }
                         }
                     }
