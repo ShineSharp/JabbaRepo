@@ -217,20 +217,10 @@ namespace IKalista
                 return true;
             }
 
-            // Poppy R
-            if (target.ChampionName == "Poppy")
+            //// Kindred's Lamb's Respite(R)
+            if (target.Buffs.Any(b => b.IsValidBuff() && b.DisplayName == "kindredrnodeathbuff"))
             {
-                if (
-                    HeroManager.Allies.Any(
-                        o =>
-                        !o.IsMe
-                        && o.Buffs.Any(
-                            b =>
-                            b.Caster.NetworkId == target.NetworkId && b.IsValidBuff()
-                            && b.DisplayName == "PoppyDITarget")))
-                {
-                    return true;
-                }
+                return true;
             }
 
             return false;
@@ -404,26 +394,20 @@ namespace IKalista
         /// </returns>
         [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1407:ArithmeticExpressionsMustDeclarePrecedence", 
             Justification = "Reviewed. Suppression is OK here.")]
-        private float GetCustomDamage(Obj_AI_Base target, int customStacks = -1)
+        private float GetCustomDamage(Obj_AI_Base target)
         {
-            var baseDamage = new[] { 10, 14, 19, 25, 32 };
-            var additionalBaseDamage = new[] { 0.6f, 0.6f, 0.6f, 0.6f, 0.6f };
-
-            var spearDamage = new[] { 10, 14, 19, 25, 32 };
-            var additionalSpearDamage = new[] { 0.2f, 0.225f, 0.25f, 0.275f, 0.3f };
-
-            var buff = target.GetBuffCount("kalistaexpungemarker");
-
-            if (buff > 0 || customStacks > -1)
+            if (target.HasBuff("ferocioushowl") && target.CharData.BaseSkinName == "Alistar")
             {
-                var tdamage = (baseDamage[this.spells[SpellSlot.E].Level - 1] + additionalBaseDamage[this.spells[SpellSlot.E].Level - 1] * ObjectManager.Player.TotalAttackDamage) +
-                       ((customStacks < 0 ? buff : customStacks) - 1) *
-                       (spearDamage[this.spells[SpellSlot.E].Level - 1] + additionalSpearDamage[this.spells[SpellSlot.E].Level - 1] * ObjectManager.Player.TotalAttackDamage);
-
-                return (float)ObjectManager.Player.CalcDamage(target, Damage.DamageType.Physical, tdamage);
+                return this.spells[SpellSlot.E].GetDamage(target) * 0.7f;
             }
-            return 0;
+            return
+                (float)
+                    ObjectManager.Player.CalcDamage(target, Damage.DamageType.Physical,
+                        this.spells[SpellSlot.E].GetDamage(target) - this.sliderLinks["eDamageReduction"].Value.Value);
+
+
         }
+
 
         /// <summary>
         ///     Gets the damage to drake
@@ -865,78 +849,65 @@ namespace IKalista
         /// </summary>
         private void OnCombo()
         {
-            var target =
-                TargetSelector.GetTarget(
-                    BoolLinks["useQ"].Value ? this.spells[SpellSlot.Q].Range : this.spells[SpellSlot.E].Range, 
-                    TargetSelector.DamageType.Physical);
-                    
-            if(!target.IsValidTarget())
-            {
-                return;
-            }
             if (BoolLinks["exploit"].Value && ObjectManager.Player.AttackDelay / 1 > 1.70)
             {
-                if (Game.Time * 1000 >= Orbwalking.LastAATick + 1)
+                foreach (var enemy in HeroManager.Enemies.Where(x=> x.IsValidTarget(ObjectManager.Player.AttackRange)))
                 {
-                    ObjectManager.Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
-                }
-                if (Game.Time * 1000 > Orbwalking.LastAATick + ObjectManager.Player.AttackDelay * 1000 - 150)
-                {
-                    ObjectManager.Player.IssueOrder(GameObjectOrder.AttackUnit, target);
+                    if (Game.Time * 1000 >= Orbwalking.LastAATick + 1)
+                    {
+                        ObjectManager.Player.IssueOrder(GameObjectOrder.MoveTo, Game.CursorPos);
+                    }
+                    if (Game.Time * 1000 > Orbwalking.LastAATick + ObjectManager.Player.AttackDelay * 1000 - 150)
+                    {
+                        ObjectManager.Player.IssueOrder(GameObjectOrder.AttackUnit, enemy);
+                    }
                 }
             }
+
             if (this.spells[SpellSlot.Q].IsReady() && BoolLinks["useQ"].Value && !ObjectManager.Player.IsDashing()
                 && !ObjectManager.Player.IsWindingUp)
             {
-                if (BoolLinks["qMana"].Value && !this.spells[SpellSlot.Q].IsKillable(target)
-                    && ObjectManager.Player.Mana
-                    < this.spells[SpellSlot.Q].Instance.ManaCost + this.spells[SpellSlot.E].Instance.ManaCost)
+                foreach (var enemy in HeroManager.Enemies.Where(x=> x.IsValidTarget(spells[SpellSlot.Q].Range)))
                 {
-                    return;
-                }
-
-                if (BoolLinks["saveManaR"].Value && this.spells[SpellSlot.R].IsReady()
-                    && ObjectManager.Player.Mana
-                    < this.spells[SpellSlot.Q].Instance.ManaCost + this.spells[SpellSlot.R].Instance.ManaCost)
-                {
-                    return;
-                }
-
-                var prediction = this.spells[SpellSlot.Q].GetPrediction(target);
-                if (prediction.Hitchance >= HitChance.VeryHigh)
-                {
-                    this.spells[SpellSlot.Q].Cast(prediction.CastPosition);
-                }
-                else if (prediction.Hitchance == HitChance.Collision)
-                {
-                    this.QCollisionCheck(target);
+                    var prediction = this.spells[SpellSlot.Q].GetPrediction(enemy);
+                    if (prediction.Hitchance >= HitChance.VeryHigh)
+                    {
+                        this.spells[SpellSlot.Q].Cast(prediction.CastPosition);
+                    }
+                    else if (prediction.Hitchance == HitChance.Collision)
+                    {
+                        this.QCollisionCheck(enemy);
+                    }
                 }
             }
-
-            if (this.spells[SpellSlot.E].IsReady() && target.HasBuff("KalistaExpungeMarker")
-                && this.spells[SpellSlot.E].IsInRange(target) && !ObjectManager.Player.HasBuff("summonerexhaust"))
+            if (this.spells[SpellSlot.E].IsReady() && BoolLinks["useE"].Value)
             {
-                var stacks = target.GetBuffCount("kalistaexpungemarker");
-                var damage = Math.Ceiling(this.spells[SpellSlot.E].GetDamage(target) * 100 / target.Health);
-
-                if (BoolLinks["eLeaving"].Value && damage >= this.sliderLinks["ePercent"].Value.Value
-                    && target.HealthPercent > 20
-                    && target.ServerPosition.Distance(ObjectManager.Player.ServerPosition, true)
-                    > Math.Pow(this.spells[SpellSlot.E].Range * 0.8, 2)
-                    && Environment.TickCount - this.spells[SpellSlot.E].LastCastAttemptT > 500)
+                foreach (var enemy in HeroManager.Enemies.Where(x=> x.IsValidTarget(spells[SpellSlot.E].Range)
+                    && x.HasBuff("KalistaExpungeMarker") && !ObjectManager.Player.HasBuff("summonerexhaust")))
                 {
-                    this.spells[SpellSlot.E].Cast();
-                    this.spells[SpellSlot.E].LastCastAttemptT = Environment.TickCount;
-                }
+                    var stacks = enemy.GetBuffCount("kalistaexpungemarker");
+                    var damage = Math.Ceiling(this.spells[SpellSlot.E].GetDamage(enemy) * 100 / enemy.Health);
 
-                if ((this.GetCustomDamage(target) >= target.Health && !this.HasUndyingBuff(target)
-                     && Environment.TickCount - this.spells[SpellSlot.E].LastCastAttemptT > 500)
-                    || (stacks >= this.sliderLinks["minStacks"].Value.Value))
-                {
-                    this.spells[SpellSlot.E].Cast();
-                    this.spells[SpellSlot.E].LastCastAttemptT = Environment.TickCount;
+                    if (BoolLinks["eLeaving"].Value && damage >= this.sliderLinks["ePercent"].Value.Value
+                        && enemy.HealthPercent > 20
+                        && enemy.ServerPosition.Distance(ObjectManager.Player.ServerPosition, true)
+                        > Math.Pow(this.spells[SpellSlot.E].Range * 0.8, 2)
+                        && Environment.TickCount - this.spells[SpellSlot.E].LastCastAttemptT > 500)
+                    {
+                        this.spells[SpellSlot.E].Cast();
+                        this.spells[SpellSlot.E].LastCastAttemptT = Environment.TickCount;
+                    }
+
+                    if ((this.GetCustomDamage(enemy) > enemy.Health && !this.HasUndyingBuff(enemy)
+                         && Environment.TickCount - this.spells[SpellSlot.E].LastCastAttemptT > 500)
+                        || (stacks >= this.sliderLinks["minStacks"].Value.Value))
+                    {
+                        this.spells[SpellSlot.E].Cast();
+                        this.spells[SpellSlot.E].LastCastAttemptT = Environment.TickCount;
+                    }
                 }
             }
+            
         }
 
         /// <summary>
