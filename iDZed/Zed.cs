@@ -19,6 +19,9 @@
 //   TODO The zed.
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
+
+using System.Diagnostics.Eventing.Reader;
+
 namespace iDZed
 {
     using System;
@@ -411,10 +414,6 @@ namespace iDZed
                 }
                 else
                 {
-                    if (Menu.Item("dontult:" + target.ChampionName).GetValue<bool>())
-                    {
-                        return;
-                    }
                     if (_spells[SpellSlot.R].IsReady() && _spells[SpellSlot.R].IsInRange(target))
                     {
                         _spells[SpellSlot.R].Cast(target);
@@ -753,17 +752,26 @@ namespace iDZed
                     }
                     else if ((!_spells[SpellSlot.W].IsReady() || WShadowSpell.ToggleState != 0) && _spells[SpellSlot.Q].IsReady() && target.Distance(Player) < _spells[SpellSlot.Q].Range)
                     {
-                        _spells[SpellSlot.Q].Cast(target.ServerPosition);
+                        if (Menu.Item("fast.harass").GetValue<bool>())
+                        {
+                            if (_spells[SpellSlot.Q].GetPrediction(target).Hitchance < HitChance.High)
+                            {
+                                _spells[SpellSlot.Q].Cast(target.Position);
+                            }
+                            else
+                            {
+                                _spells[SpellSlot.Q].Cast();
+                            }
+                        }
                     }
-                    else if ((!_spells[SpellSlot.W].IsReady() || !_spells[SpellSlot.Q].IsReady() || WShadowSpell.ToggleState != 0) && _spells[SpellSlot.E].IsReady() && target.Distance(Player) < _spells[SpellSlot.E].Range)
+                    else if (WShadowSpell.ToggleState != 0 && !_spells[SpellSlot.Q].IsReady() && _spells[SpellSlot.E].IsReady())
                     {
-                        _spells[SpellSlot.E].Cast();
+                        foreach (var shdw in ShadowManager._shadowsList.Where(x => x.Type == ShadowType.Normal))
+                        {
+                            _spells[SpellSlot.E].Cast();
+                        }
                     }
-                    if (ShadowManager.WShadow.Exists)
-                    {
-                        CastE();
-                        CastQ(target);
-                    }
+                    
 
                     break;
             }
@@ -828,21 +836,12 @@ namespace iDZed
                     new MenuItem("com.idz.zed.combo.mode", "Combo Mode").SetValue(
                         new StringList(new[] { "Line Mode", "Triangle Mode" })));
             }
-
-            var dontUlt = new Menu("Don't Ult", "com.idz.zed.combo.dontult");
-            {
-                foreach (var source in HeroManager.Enemies.Where(x => x.IsValid))
-                {
-                    dontUlt.AddItem(new MenuItem("dontult:" + source.ChampionName, "Disable: " + source.ChampionName).SetValue(false));
-                }
-            }
-            comboMenu.AddSubMenu(dontUlt);
-
             Menu.AddSubMenu(comboMenu);
 
             var harassMenu = new Menu(":: Harass", "com.idz.zed.harass");
             {
                 harassMenu.AddItem(new MenuItem("com.idz.zed.harass.useHarass", "Use Harass").SetValue(true));
+                harassMenu.AddItem(new MenuItem("fast.harass", "Q Prediction: On = slower, off = faster").SetValue(false));
                 harassMenu.AddItem(
                     new MenuItem("com.idz.zed.harass.harassMode", "Harass Mode").SetValue(
                         new StringList(new[] { "W-E-Q" })));
