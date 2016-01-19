@@ -754,15 +754,15 @@ namespace iDZed
                     {
                         if (Menu.Item("fast.harass").GetValue<bool>())
                         {
-                            if (_spells[SpellSlot.Q].GetPrediction(target).Hitchance < HitChance.High)
-                            {
-                                _spells[SpellSlot.Q].Cast(target.Position);
-                            }
-                            else
-                            {
-                                _spells[SpellSlot.Q].Cast(target.Position);
-                            }
+                            _spells[SpellSlot.Q].Cast(target.Position);
                         }
+						else
+						{
+							if (_spells[SpellSlot.Q].GetPrediction(target).Hitchance < HitChance.High)
+                            {
+                                _spells[SpellSlot.Q].Cast(target.Position);
+                            }
+						}
                     }
                     else if (WShadowSpell.ToggleState != 0 && !_spells[SpellSlot.Q].IsReady() && _spells[SpellSlot.E].IsReady())
                     {
