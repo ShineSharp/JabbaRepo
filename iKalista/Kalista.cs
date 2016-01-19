@@ -1190,8 +1190,8 @@ namespace IKalista
                 this.OnFlee();
             }
 
-            if (BoolLinks["autoTrinket"].Value && ObjectManager.Player.Level >= 6 && ObjectManager.Player.InShop()
-                && !(Items.HasItem((int)ItemId.Farsight_Orb_Trinket) || Items.HasItem((int)ItemId.Farsight_Orb_Trinket)))
+            if (BoolLinks["autoTrinket"].Value && ObjectManager.Player.Level >= 9 && ObjectManager.Player.InShop()
+                && !Items.HasItem((int)ItemId.Farsight_Orb_Trinket))
             {
                 ObjectManager.Player.BuyItem(ItemId.Farsight_Orb_Trinket);
             }
