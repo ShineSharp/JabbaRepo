@@ -34,6 +34,8 @@ namespace IKalista
 
     using SharpDX;
 
+    using SPrediction;
+
     using Collision = LeagueSharp.Common.Collision;
     using Color = System.Drawing.Color;
 
@@ -869,12 +871,12 @@ namespace IKalista
             {
                 foreach (var enemy in HeroManager.Enemies.Where(x=> x.IsValidTarget(spells[SpellSlot.Q].Range)))
                 {
-                    var prediction = this.spells[SpellSlot.Q].GetPrediction(enemy);
-                    if (prediction.Hitchance >= HitChance.VeryHigh)
+                    var prediction = this.spells[SpellSlot.Q].GetSPrediction(enemy);
+                    if (prediction.HitChance >= HitChance.High)
                     {
                         this.spells[SpellSlot.Q].Cast(prediction.CastPosition);
                     }
-                    else if (prediction.Hitchance == HitChance.Collision)
+                    else if (prediction.HitChance == HitChance.Collision)
                     {
                         this.QCollisionCheck(enemy);
                     }
@@ -954,21 +956,21 @@ namespace IKalista
 
                 foreach (var unit in
                     HeroManager.Enemies.Where(x => x.IsValidTarget(this.spells[SpellSlot.Q].Range))
-                        .Where(unit => this.spells[SpellSlot.Q].GetPrediction(unit).Hitchance == HitChance.Immobile))
+                        .Where(unit => this.spells[SpellSlot.Q].GetSPrediction(unit).HitChance == HitChance.Immobile))
                 {
-                    this.spells[SpellSlot.Q].Cast(unit);
+                    this.spells[SpellSlot.Q].Cast(unit.ServerPosition);
                 }
 
-                var prediction = this.spells[SpellSlot.Q].GetPrediction(spearTarget);
+                var prediction = this.spells[SpellSlot.Q].GetSPrediction(spearTarget);
                 if (!ObjectManager.Player.IsWindingUp && !ObjectManager.Player.IsDashing())
                 {
-                    switch (prediction.Hitchance)
+                    switch (prediction.HitChance)
                     {
                         case HitChance.Collision:
                             this.QCollisionCheck(spearTarget);
                             break;
-                        case HitChance.VeryHigh:
-                            this.spells[SpellSlot.Q].Cast(spearTarget);
+                        case HitChance.High:
+                            this.spells[SpellSlot.Q].Cast(prediction.CastPosition);
                             break;
                     }
                 }
@@ -1268,7 +1270,7 @@ namespace IKalista
                     var time = this.spells[SpellSlot.Q].Delay
                                + (ObjectManager.Player.Distance(point) / this.spells[SpellSlot.Q].Speed * 1000f);
 
-                    var prediction = Prediction.GetPrediction(target, time);
+                    var prediction = LeagueSharp.Common.Prediction.GetPrediction(target, time);
 
                     var collision = this.spells[SpellSlot.Q].GetCollision(
                         point.To2D(), 
