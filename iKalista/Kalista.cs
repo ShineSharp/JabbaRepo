@@ -122,7 +122,7 @@ namespace IKalista
             this.InitMenu();
             this.InitSpells();
             this.InitEvents();
-
+            
             // SpriteHandler.LoadSprite();
         }
 
@@ -775,6 +775,8 @@ namespace IKalista
                         Color.FromArgb(150, Color.Red), 
                         this.spells[SpellSlot.E].Range));
             }
+
+            SPrediction.Prediction.Initialize(menu.MenuHandle);
         }
 
         /// <summary>
@@ -970,6 +972,7 @@ namespace IKalista
                             this.QCollisionCheck(spearTarget);
                             break;
                         case HitChance.High:
+                        case HitChance.VeryHigh:
                             this.spells[SpellSlot.Q].Cast(prediction.CastPosition);
                             break;
                     }
